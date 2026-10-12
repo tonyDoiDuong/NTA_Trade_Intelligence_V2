@@ -94,3 +94,37 @@ Khi thị trường mở (thường sáng thứ Hai giờ VN):
 **Chưa đủ điều kiện mở Phase 3.** Toàn bộ logic Phase 1 tính lại độc lập khớp 100% với dữ
 liệu thật, test và giao diện đạt; nhưng các mục 2, 4, 16, 19 (phần live) cần chạy lại khi thị
 trường mở với EA 1.200.
+
+## 7. Nghiệm thu live — 2026-10-12 08:07–08:15 (Asia/Saigon), thị trường mở
+
+Người thực hiện: Claude Code. Bridge vận hành cổng 8000 (PID 7132) **không bị dừng/restart**.
+Cổng 8011–8013 đã không còn listener (bridge test cũ đã tắt).
+
+| # | Mục | Trạng thái | Bằng chứng |
+|---|---|---|---|
+| 2 | MT5 → FastAPI | PASS | `latest.ea_version=bridge-0.5` (EA 1.200 đã gắn), broker `VantageMarkets-Live 15`, spread 0.22. Đo `/api/health` mỗi 3 s trong 30 s: độ trễ 0.74–1.86 s (yêu cầu ≤10 s). |
+| 4 | WebSocket (live) | PASS | `/ws/live` trong 30 s: 36 tin nhắn — `phase1` ngay khi kết nối, sau đó `tick`/`phase1` theo nhịp EA ~2 s và `heartbeat` 5 s. |
+| 16 | Signal Registry (live) | PASS | Signal tự nhiên đầu tiên `SIG-55732A8F…` (MODEL_B BOS Continuation + Retest, BUY_LIMIT 4208.375, SL 4204.46). `/api/signals/{id}`: transitions WATCH→DETECTED→BLOCKED, 3 snapshot khớp. BLOCKED vì `ENTRY_PLAN_INCOMPLETE` + `RR_BELOW_MINIMUM` (không có mục tiêu cấu trúc đạt R:R ≥ 2 sau chi phí) — đúng luật, `take_profit=null`, lot/RiskMoney N/A, `execution_enabled=false`. |
+| 19 | Reconnect | NOT TESTED | Cần dừng bridge cổng 8000 trong giờ thị trường mở → chờ người dùng đồng ý (luật an toàn #2). |
+| 21 | Python tests / audit | PASS | 45/45 OK; `audit_live_db.py`: `quick_check=ok`, 388 nến M5, 0 OHLC lỗi, 0 lệch grid/UTC, `m5_bar_conflicts=0`. |
+| — | Đối chiếu 10 nến với MT5 | CHỜ NGƯỜI DÙNG | Bảng dưới (giờ broker UTC+3), so với Data Window (Ctrl+D) trên chart XAUUSD M5. |
+
+Ghi chú: `audit_live_db.py` báo `within_300_350=False` vì DB giờ có 388 nến (lịch sử tăng dần
+theo thời gian). Engine vẫn chỉ dùng 350 nến gần nhất (`market_structure.bar_count=350`), nên
+đây là tiêu chí audit quá chặt, không phải lỗi dữ liệu.
+
+| Giờ broker | Open | High | Low | Close | Tick vol |
+|---|---|---|---|---|---|
+| 2026-10-12 03:15 | 4205.99 | 4208.02 | 4202.56 | 4203.27 | 2542 |
+| 2026-10-12 03:20 | 4203.28 | 4210.58 | 4202.81 | 4209.83 | 2409 |
+| 2026-10-12 03:25 | 4209.88 | 4210.30 | 4205.51 | 4205.53 | 2250 |
+| 2026-10-12 03:30 | 4205.53 | 4207.50 | 4203.11 | 4206.50 | 2153 |
+| 2026-10-12 03:35 | 4206.50 | 4207.37 | 4202.66 | 4205.99 | 1967 |
+| 2026-10-12 03:40 | 4205.95 | 4210.07 | 4205.95 | 4208.46 | 2059 |
+| 2026-10-12 03:45 | 4208.49 | 4209.02 | 4205.20 | 4206.34 | 2001 |
+| 2026-10-12 03:50 | 4206.35 | 4208.25 | 4204.79 | 4208.16 | 2311 |
+| 2026-10-12 03:55 | 4208.10 | 4209.90 | 4206.10 | 4209.03 | 2451 |
+| 2026-10-12 04:00 | 4209.01 | 4215.58 | 4208.50 | 4214.36 | 3707 |
+
+**Kết luận cập nhật:** mục 2, 4, 16 PASS live. Còn 2 điều kiện trước khi mở Phase 3:
+reconnect test (cần người dùng cho phép dừng bridge) và người dùng xác nhận 10 nến khớp MT5.

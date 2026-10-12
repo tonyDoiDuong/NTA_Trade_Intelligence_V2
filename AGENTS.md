@@ -66,7 +66,9 @@ Khi đổi logic, tăng `#property version` của EA và `version` của FastAPI
   dấu). Không đổi tên input đã có.
 - Báo cáo nghiệm thu mỗi phase: `docs/PHASEn_REPORT.md` (ma trận PASS/FAIL/NOT TESTED kèm
   bằng chứng). Hướng dẫn người dùng: `docs/HUONG_DAN.txt`.
-- Dự án **không có git** — `backups/` là cơ chế khôi phục duy nhất.
+- Dự án có git (từ 2026-10-12), remote public `https://github.com/tonyDoiDuong/NTA_Trade_Intelligence_V2`.
+  `.gitignore` loại `*.sqlite3`, `backups/`, `.venv/`, `*.ex5`, `*.log` — DB thật **không** nằm
+  trong git, nên luật sao lưu `backups/` ở trên vẫn bắt buộc. Repo public: không commit dữ liệu tài khoản.
 
 ## Tiến độ (cập nhật cuối mỗi phiên)
 
@@ -87,13 +89,21 @@ Khi đổi logic, tăng `#property version` của EA và `version` của FastAPI
 - Phát hiện: chart MT5 vẫn chạy EA cũ (`ea_version=bridge-0.4`); 3 bridge test cũ còn ở
   cổng 8011–8013 (chưa tắt, chờ người dùng).
 
-**Việc tiếp theo**
+**2026-10-12 08:15 — Claude Code nghiệm thu live (thị trường mở)**
+
+- Đưa dự án lên git + GitHub (commit đầu `2485c32`).
+- `docs/LIVE_ACCEPTANCE_REPORT.md` mục 7: MT5→FastAPI PASS (`bridge-0.5`, trễ ≤1.9 s), WebSocket
+  PASS, Signal Registry PASS với signal thật MODEL_B (BLOCKED do R:R < 2, đúng luật). Bridge
+  8000 không bị restart; cổng 8011–8013 đã sạch.
+
+**Việc tiếp theo** (mục 1 bên dưới đã xong: EA 1.200 đang chạy trên chart)
 
 1. 23:12 đã chép EA 1.200 (.mq5/.ex5, MD5 khớp) vào `MQL5\Experts\` của Vantage
    (terminal 725B72F2…; backup bản 1.100 ở `backups/pre_ea_1200_deploy_20261011_231218`).
    Người dùng còn phải gắn lại EA lên chart XAUUSD (log cho thấy chart đang là M30) và xác
    nhận dòng "NTA Bridge Phase 2 signal-only started" trong tab Experts.
-2. Khi thị trường mở: chạy lại các mục NOT TESTED trong `docs/LIVE_ACCEPTANCE_REPORT.md`
+2. Còn lại: reconnect test (cần người dùng cho phép dừng bridge 8000) và người dùng đối chiếu
+   10 nến ở mục 7 báo cáo với MT5. Các mục NOT TESTED khác trong `docs/LIVE_ACCEPTANCE_REPORT.md`
    (LIVE ≤10 s, `ea_version=bridge-0.5`, reconnect, đối chiếu 10 nến với MT5, signal lifecycle)
    và cập nhật báo cáo đó.
 3. Chỉ khi LIVE acceptance PASS mới bàn Phase 3: backtest/event replay chống look-ahead, lịch
