@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Dữ liệu runtime (tick/giao dịch thật) — không đưa lên repo public
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Bản sao lưu cục bộ
+backups/
+
+# MT5: file biên dịch và log compile
+*.ex5
+*.log

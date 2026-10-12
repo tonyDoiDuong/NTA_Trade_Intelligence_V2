@@ -1,0 +1,110 @@
+NTA TRADE INTELLIGENCE V2.0 — CẬP NHẬT PHASE 2 TRÊN WINDOWS
+================================================================
+
+PHẠM VI ĐÃ BẬT
+- Phase 1: Fractal 2–2, BOS/CHOCH, Liquidity Sweep, FVG, ATR14 và Volume Intelligence.
+- Phase 2: Model A Sweep + Rejection, Model B BOS Continuation + Retest,
+  Model C MSS + FVG + OTE, Signal Registry, Entry Planner và Risk Engine.
+- SIGNAL ONLY. EA và backend không đặt lệnh thật; không có OrderSend/CTrade.
+- Historical Win Rate, Sample Size, Expectancy, RiskMoney và lot là N/A khi chưa có
+  backtest hoặc dữ liệu tài khoản/hợp đồng đã xác minh.
+
+0. SAO LƯU VÀ DỪNG BẢN CŨ
+1. Trong cửa sổ Bridge đang chạy, nhấn Ctrl+C rồi chờ server dừng hẳn.
+2. Không xóa C:\NTA_Trade_Intelligence_V2\bridge\nta_data.sqlite3.
+3. Backup trước Phase 2 đã có tại:
+   C:\NTA_Trade_Intelligence_V2\backups\pre_phase2_20261011
+4. Trong MT5, bỏ EA bridge cũ khỏi chart XAUUSD trước khi chép bản mới.
+
+1. CẬP NHẬT VÀ COMPILE EA
+1. MT5 → File → Open Data Folder.
+2. Mở MQL5\Experts và tạo thư mục NTA_Bridge nếu chưa có.
+3. Chép file:
+   C:\NTA_Trade_Intelligence_V2\mt5\NTA_Bridge_Test.mq5
+   vào MQL5\Experts\NTA_Bridge\NTA_Bridge_Test.mq5.
+4. Mở file vừa chép bằng MetaEditor và nhấn F7.
+5. Chỉ tiếp tục nếu Toolbox báo 0 errors, 0 warnings.
+   Bản repository đã compile thật bằng MetaEditor64: 0 errors, 0 warnings.
+
+2. CHO PHÉP WEBREQUEST
+1. MT5 → Tools → Options → Expert Advisors.
+2. Bật Allow WebRequest for listed URL.
+3. Thêm chính xác: http://127.0.0.1:8000
+4. Không cần bật Algo Trading để đặt lệnh; EA này chỉ gửi dữ liệu.
+
+3. KHỞI ĐỘNG BRIDGE
+1. Mở File Explorer đến C:\NTA_Trade_Intelligence_V2.
+2. Nhấp đúp start_dashboard.bat và giữ cửa sổ đó mở.
+3. Lần chạy đầu server 0.5 sẽ thêm các bảng signal theo cách không phá hủy dữ liệu:
+   signals, signal_transitions, signal_snapshots.
+4. Mở lần lượt:
+   http://127.0.0.1:8000/api/health
+   http://127.0.0.1:8000/api/dashboard?symbol=XAUUSD&timeframe=M5
+   http://127.0.0.1:8000
+5. Health phải có phase=2 và version=0.5.0.
+6. API dashboard phải có mode=SIGNAL_ONLY, signal_engine=PHASE2_MODELS_A_B_C,
+   execution_enabled=false.
+
+4. GẮN EA VÀO ĐÚNG CHART
+1. Mở chart XAUUSD của đúng broker và chọn timeframe M5.
+2. Gắn NTA_Bridge_Test vào chart.
+3. Inputs:
+   BridgeURL = http://127.0.0.1:8000/api/mt5/tick
+   SendIntervalSeconds = 2
+   SoNenM5DaDong = 350
+   ChuKyDongBoLichSuGiay = 60
+   SendOnlyFreshTicks = true
+4. Tab Experts phải hiện:
+   NTA Bridge Phase 2 signal-only started...
+5. Nếu HTTP -1: kiểm tra Bridge đang chạy và URL đã có trong WebRequest allow-list.
+6. Nếu thị trường đóng/không có tick mới, EA không gửi snapshot mới; dashboard phải
+   hiển thị DATA STALE và mọi hành động mới phải là WAIT/BLOCKED.
+
+5. KIỂM TRA DASHBOARD
+1. Header phải là XAUUSD · M5 và đúng broker/server.
+2. Bid/Ask phải gần Market Watch; trạng thái LIVE phải xuất hiện trong vòng 10 giây.
+3. Nến M5 đã đóng phải là 300–350. So sánh thủ công ít nhất 10 nến với MT5:
+   time, open, high, low, close, tick volume.
+4. Bar mới nhất phải là nến vừa đóng, không phải nến đang chạy.
+5. Main Recommendation phải có Market Bias, Primary Action, Setup Type, Entry,
+   Stop Loss, Take Profit, R:R, Quality Score, Volume Status, Signal Age, Risk Status.
+6. Bốn card luôn có: BEST BUY, BEST SELL, POI RETEST, BREAKOUT / REVERSAL.
+7. WATCH/DETECTED không phải khuyến nghị vào lệnh. READY/ARMED chỉ hợp lệ khi có đủ
+   Entry/SL/TP, R:R sau chi phí >=2, expiry, invalidation và risk allocation.
+8. Khi spread cao, market closed hoặc stale: action phải là WAIT/BLOCKED.
+9. Volume phải ghi rõ là MT5 Tick Volume. Win Rate/Sample Size/Expectancy phải là N/A.
+10. Không được thấy bất kỳ lệnh thật nào trong tab Trade của MT5.
+
+6. KIỂM TRA SQLITE VÀ TEST
+Mở PowerShell tại C:\NTA_Trade_Intelligence_V2 rồi chạy:
+
+  .venv\Scripts\python.exe tests\audit_live_db.py
+  .venv\Scripts\python.exe -m unittest discover -s tests -v
+
+Kỳ vọng tại lần bàn giao này:
+- quick_check=ok.
+- BTCUSD legacy vẫn còn và không xuất hiện trong stream XAUUSD.
+- XAUUSD/VantageMarkets-Live 15 có 350 nến, invalid_ohlc=0,
+  invalid_order_or_grid=0, utc_mismatch=0, newest_is_closed=True.
+- 45 tests, OK.
+
+7. KIỂM TRA SIGNAL HISTORY
+1. Khi dashboard có SignalID, mở:
+   http://127.0.0.1:8000/api/signals/<SignalID>
+2. transitions phải tăng tuần tự; snapshots cũ không bị ghi đè.
+3. MARKET chỉ được VIRTUAL_FILLED ở tick đến sau tick tạo tín hiệu.
+4. LIMIT chỉ được VIRTUAL_FILLED khi tick tương lai chạm entry.
+5. Đây chỉ là mô phỏng; không có lệnh được gửi đến broker.
+
+8. XỬ LÝ LỖI NHANH
+- HTTP 422: payload thiếu broker/offset, không đủ 300 nến, OHLC sai, thứ tự sai,
+  timestamp không nằm trên grid M5 hoặc nến mới nhất chưa đóng.
+- DATA STALE: không có tick trong 10 giây; kiểm tra market và EA trên chart.
+- MARKET_CLOSED: lịch UTC cuối tuần; lịch nghỉ/maintenance broker vẫn cần đối chiếu.
+- SPREAD_TOO_HIGH: chờ spread/ATR về ngưỡng cho phép; không ép Entry/SL/TP.
+- Dashboard không đổi: kiểm tra health 0.5.0, sau đó Ctrl+F5.
+- immutable_bar_conflicts > 0: dừng nghiệm thu và kiểm tra revision từ broker;
+  bản OHLC đầu tiên không bị overwrite.
+
+Báo cáo chi tiết:
+C:\NTA_Trade_Intelligence_V2\docs\PHASE2_REPORT.md
